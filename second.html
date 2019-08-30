@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Second页面</title>
+  <script src="vue.js"></script>
+</head>
+<body>
+
+<div>
+  <button onclick="mainSendMessage()">发送消息给主进程</button>
+  <button onclick="nextPageBtn()">打开新窗口</button>
+</div>
+<div id="apppp">
+  <div>{{text}}</div>
+</div>
+<script>
+
+  const {app, remote, ipcRenderer} = require('electron')
+  console.log(ipcRenderer)
+
+  var appTest = 100
+  window.aflux = window.opener.aflux
+  console.log(aflux)
+  // appTest = app.showName()
+  window.appTest =appTest
+
+
+  // 向主进程main.js发送消息
+  function mainSendMessage() {
+    ipcRenderer.send('mainSendMessage', 'second.html')
+  }
+
+  // 接收主进程main.js消息
+  ipcRenderer.on('mainSendMessage', function (event, message) {
+    console.log(message)
+  })
+
+  // 监听主进程消息自定义
+  ipcRenderer.on('new-messages', function (event, message) {
+    let d = message.x + message.y
+    vm.text =d  + ` ${message.now}`
+    console.log('渲染进程接收主进程消息:', message)
+  })
+
+
+  function nextPageBtn() {
+    let o = window.open('third.html?' + Date.now(), 'third')
+    console.log(o)
+  }
+
+  let vm = new Vue({
+    el: '#apppp',
+    data () {
+      return {
+        text: 124,
+      }
+    }
+  })
+  window.vm = vm
+</script>
+</body>
+</html>

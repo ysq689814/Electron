@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Electron practise</title>
+  <script src="vue.js"></script>
+</head>
+<body>
+
+<br>
+<div>
+  <button id="sendTypeOne" onclick="sendTypeOne()">MainMsgFromRender 发送消息至主进程</button>
+  <button onclick="mainSendMessage()">mainSendMessage 发送消息给主进程</button>
+</div>
+
+<br>
+<div>
+  <button id="sendTypeTwo" onclick="sendTypeTwo()">global获取全局共享数据</button>
+  <button id="sendTypeThree" onclick="sendTypeThree()">global全局共享数据赋值</button>
+</div>
+
+<div>
+  <button id="writeFile" onclick="writeFile()">writeFile</button>
+  <button id="readFile" onclick="readFile()">readFile</button>
+</div>
+
+<div style="border: 1px solid #ddd; padding: 10px;margin: 5px 0">
+  <button onclick="openWindow()">打开新窗口第1种方式</button>
+  <button onclick="openWindow3()">window.open新窗口1</button>
+  <button onclick="sendSubWindowMsg()">发送消息给子窗口</button>
+</div>
+<div style="border: 1px solid #ddd; padding: 10px;margin: 5px 0">
+  <button onclick="openWindow2()">打开新窗口第2种方式</button>
+  <button onclick="sendToSecond()">发送消息给子窗口</button>
+</div>
+<div id="apppp">
+  <div>{{text}}</div>
+</div>
+<script>
+  const {app, remote, ipcRenderer} = require('electron')
+  let BrowserWindow = remote.BrowserWindow
+  let secondWin = null
+  var aflux = {
+    name: 'hello world',
+    age: 1,
+    test: 'qqqqq',
+    showName:function () {
+      console.log(this.name)
+      return this.name
+    },
+    setName: function(val) {
+      this.name = val
+    },
+    arr: [1, 2],
+    process: window.process
+  }
+
+  window.aflux = aflux
+  window.process.aflux = aflux
+
+  console.log(remote.getGlobal('userName')) //获取主进程
+
+  function sendTypeOne() {
+    //向主进程发送消息
+    ipcRenderer.send('MainMsgFromRender', 'hahaha')
+  }
+
+  // 监听主进程返回的消息
+  ipcRenderer.on('RenderMsgFromMain', function (event, arg) {
+    alert(arg)
+  })
+
+  // 监听主进程消息
+  ipcRenderer.on('main-process-messages', function (event, message) {
+    console.log('接收主进程消息:', message)
+  })
+
+  // 监听主进程消息自定义
+  ipcRenderer.on('new-messages', function (event, message) {
+    let d = message.x + message.y
+    vm.text =d  + ` ${message.now}`
+    console.log('接收主进程消息:', message)
+  })
+
+
+  function sendTypeTwo() {
+    //alert(remote.app.getVersion())
+    alert(remote.getGlobal('sharedObject').newTel)
+  }
+
+  function sendTypeThree() {
+    remote.getGlobal('sharedObject').newTel = '1111'
+    alert('赋值成功，请按上一按钮进行验证')
+  }
+
+  function writeFile() {
+    var fs = require('fs')
+    fs.writeFile('input.txt', 'zps,1234566', function (err) {
+      if (err) {
+        alert(err)
+      } else {
+        alert('write success')
+      }
+    })
+  }
+
+  function readFile() {
+    var fs = require('fs')
+    fs.readFile('input.txt', function (err, data) {
+      if (err) throw err
+
+      var sp = data.toString().split(',')
+
+      if (sp != null && sp.length > 0) {
+        var strp = ''
+        sp.forEach(function (str) {
+          strp = strp + str
+        })
+        alert(strp)
+      }
+    })
+  }
+
+
+  // 向主进程main.js发送消息
+  function mainSendMessage() {
+    ipcRenderer.send('mainSendMessage', 'index.html')
+  }
+
+
+  function openWindow() {
+    let o = window.open('http://127.0.0.1:8080/second.html?' + Date.now(), 'second')
+    console.log('new window', o)
+  }
+
+  function openWindow3() {
+    let o = window.open('http://127.0.0.1:8080/second.html?' + Date.now(), 'second2')
+    console.log('new window', o)
+  }
+
+  function openWindow2() {
+    secondWin = new BrowserWindow({
+      width: 800,
+      height: 600
+    })
+    secondWin.loadURL('http://127.0.0.1:8080/second-2.html?' + Date.now())
+    secondWin.on('close', () => {
+      secondWin = null
+    })
+    secondWin.webContents.openDevTools()
+  }
+
+  function sendToSecond() {
+    secondWin.send('new-messages', 'I am index.html')
+  }
+
+
+  function sendSubWindowMsg() {
+    let wins = remote.getCurrentWindow().getChildWindows()
+    if (wins.length) {
+      wins.forEach((w) => {
+        w.send('new-messages', 'I am index.html')
+      })
+    }
+  }
+
+  let vm = new Vue({
+    el: '#apppp',
+    data () {
+      return {
+        text: 124,
+      }
+    }
+  })
+  window.vm = vm
+</script>
+</body>
+</html>
